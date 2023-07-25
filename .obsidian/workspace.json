@@ -1,0 +1,167 @@
+{
+  "main": {
+    "id": "d1dfbb78c66e5ae8",
+    "type": "split",
+    "children": [
+      {
+        "id": "8703ee3ab2c0d40a",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "26d24a8c3e117f5c",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Getting_Started_In_R.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "2d9710780ea55301",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "R_Style_Guide.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "6de5416439be95c0",
+    "type": "split",
+    "children": [
+      {
+        "id": "5c9566ad6054be6d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "7ab56afb9a19c2eb",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "8d895c087960af26",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "5d11da7b637dfe9c",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {}
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "ecafae4600a5ec34",
+    "type": "split",
+    "children": [
+      {
+        "id": "93b7dd71c3878d4d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "2d91c145e3c994e3",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "R_Style_Guide.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "b8f7714f2cf500cb",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "R_Style_Guide.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "cbaacf60ebb3a418",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true
+              }
+            }
+          },
+          {
+            "id": "0349d931b2a0de77",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "R_Style_Guide.md"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false
+    }
+  },
+  "active": "2d9710780ea55301",
+  "lastOpenFiles": [
+    "Getting_Started_In_R.md",
+    "R_Style_Guide.md"
+  ]
+}
