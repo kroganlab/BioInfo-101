@@ -25,7 +25,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "README.md",
+                "file": "Getting_Started_In_R.md",
                 "mode": "source",
                 "source": false
               }
@@ -98,7 +98,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "README.md",
+                "file": "Getting_Started_In_R.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -115,7 +115,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "README.md",
+                "file": "Getting_Started_In_R.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -138,7 +138,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "README.md"
+                "file": "Getting_Started_In_R.md"
               }
             }
           }
@@ -161,7 +161,8 @@
   },
   "active": "2d9710780ea55301",
   "lastOpenFiles": [
-    "R_Style_Guide.md",
-    "Getting_Started_In_R.md"
+    "README.md",
+    "Getting_Started_In_R.md",
+    "R_Style_Guide.md"
   ]
 }
