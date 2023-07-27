@@ -1,0 +1,103 @@
+---
+title: "Shortest-Path Network Analysis Tutorial"
+author: "Max Bennett"
+created: "2023-07-26"
+updated: "2023-07-26"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+defaultW <- getOption("warn") 
+options(warn = -1) 
+```
+
+
+```{r Load Dependencies, echo=FALSE, message=FALSE}
+
+# Packages
+library( data.table )
+library( igraph )
+library( RCy3 )
+
+# Helper Functions  -  if you're interested to see how a function is coded you can find it in one of these files, or go directly to it using View( )
+source( file.path( "Helper_R_Scripts", "shortestPathFunctions.R" ) )
+source( file.path( "Helper_R_Scripts", "enrichmentTestFunctions.R" ) )
+source( file.path( "Helper_R_Scripts", "ManageScriptData.R" ) )
+
+# Enable warnings, they were suppressed while loading packages
+options(warn = defaultW)
+```
+
+
+
+## Some Network Biology Basics
+  **Networks** (also called graphs) are models of pairwise relationships, called **edges**, between objects called **nodes** or **vertices**. Nodes can represent abstract objects, but most of the time in biology we'll be working with nodes that directly represent genes or proteins; for the purpose of this tutorial you can think of 'node', 'gene', and 'protein' as interchangeable. Networks can have additional qualities like node or edge weights, categorical variables attached to nodes or edges, and directed edges, although none of those will be used in this tutorial. All of our network algorithms will be implemented on an un-weighted, un-directed network. 
+
+  Many kinds of relationships between proteins can be represented with a network. The database we'll be collecting protein-protein interactions (**PPI**) from for this tutorial, STRING DB, collates information about gene fusions, gene transcript co-expression, cross-species gene co-occurrence, protein protein interactions, regulatory interactions from popular databases like KEGG, and co-occurrence of gene names in journal articles. In this tutorial we'll only be using the PPI data from STRING, which is mostly derived from high-throughput pull-down assays like yeast two-hybrid (Y2H) and affinity purification mass spectrometry (AP-MS). 
+  
+
+
+## What is Shortest-Path Analysis?
+**Shortest Paths** are exactly what they sound like, the fewest nodes and edges in a network that connect 2 nodes. If the graph is weighted, the shortest path might not be the fewest nodes and edges, but the nodes and edges with the 'least cost'. Shortest paths are a useful tool in network biology for modelling signalling pathways and other sequences of cellular interactions since they can trace the interactions that connect one protein of interest to another. Signalling pathways are usually thought of starting with receptors or other signalling proteins and 'ending' with an effector protein, like a transcription factor, that drives broad changes in the cell's state---the 'start' and 'end' in signalling pathways lend themselves well to the shortest paths model. 
+
+Of course, while a shortest path is only ever 'one protein wide,' your system of interest probably has multiple starts, multiple ends, and many proteins working in parallel to create a signalling cascade. To adapt the shortest paths model which only selects the genes between a source and a target to this paradigm, we can generate multiple shortest paths between multiple starts and ends, and take the union of those paths to create a rich subnetwork. This subnetwork includes the 'start' genes and 'end' genes and many putative linker genes that might facilitate interactions between the genes in either of those sets, but which would not be observed as significant hits in either. To select the most important linker genes in a subnetwork of shortest paths, that subnetwork can be scored on its network topography and other features to find high scoring genes.
+
+This technique has been used in this lab to connect:  
+
+**The interactors of disease causing proteins found by AP-MS** (such as Tuberculosis-secreted factors and oncogene mutants), which represent the likely beginning of disease pathology in the host cell  
+
+with **CRISPR KO/KD screen results that are necessary for disease-critical phenotypes** (such as IFNB, TNAF, and iNOS levels  or  cell survival). 
+
+In the diseased state, the disease causing proteins interact with proteins in the cell and ultimately effect some disease-related phenotype in the CRISPR-screened genes. Maybe the most critical genes are hits in both experiments, but it's much more likely and common that the interactions between these two data sets are more convoluted and modelling with shortest paths can clarify interesting results that aren't immediately obvious looking at the best hits from either experiment. You may have success using this technique for other data sets besides AP-MS and CRISPR screens.
+
+**TLDR: This technique leverages large protein-protein interaction databases, such as STRING, to relate two data sets with a plausibly causal biological relationship.** 
+
+
+
+## Some Considerations 
+There are a few assumptions in this method that you should consider when applying it:  
+
+- If you're using a network of PPI data, you're assuming that the interaction between your two gene sets of interest is mediated principally by complexes and allosteric interactions that are measured in pull-down assays.  
+
+- You are assuming that your network is generally accurate for the intracellular compartment and state of cell differentiation/disease/perturbation relevant to your inquiry.
+
+- If you implement an un-weighted network, you are using Occam's razor: that one protein's effect on another is probably mediated by the fewest interactions in a putative PPI network. Obviously, this will not always be true, so you can refine your technique as you are more selective with the edges in your underlying network, the genes admitted in either gene set, and as you apply additional features like weights to the network. 
+
+
+## Selecting the Data
+
+
+## Preparing the Network
+
+
+## Generating the Network and Scoring It
+
+
+## Interpereting the Results
+
+
+
+
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+```{r example graph, include=FALSE}
+g <- barabasi.game(25)
+plot(g, layout=layout_with_fr, vertex.size=4, vertex.label.dist=0.5, vertex.color="red", edge.arrow.size=0.5)
+```
+
+
+
