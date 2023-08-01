@@ -36,7 +36,7 @@ In this guide, functions that aren't a part of base R will usually be written wi
 	* Most useful for saving/importing complicated list objects that aren't easily formatted as tables, especially those used internally by packages like igraph. 
 
 ## R Functions for Easy Data Exploration:
-Essential tools for quickly checking something in the console or for debugging. Text in italics describes the type of object and/or the content of the object expected. 
+Essential tools for quickly checking something in the console or for debugging. Text in *italics* describes the type of object and/or the content of the object expected. 
 
 * utils::**str**( *dataframe or data.table* )
 	- “Structure,” prints column names and first few items of each column on a new line. Gets messy fast with nested lists. Essential for quickly finding column names and column data formatting when you’re working with many tables. 
@@ -59,7 +59,7 @@ Essential tools for quickly checking something in the console or for debugging. 
 
 ### Quick Plotting Functions
 
-* graphics::**hist**( \<numeric vector>)
+* graphics::**hist**( *numeric vector* )
 	- “Histogram” plots a histogram of a numeric vector.
 	- The argument breaks = *number of bins* is useful for increasing or decreasing the resolution of the histogram bins, and the argument xlim = c( *lower x lim*, *upper x lim*) is very useful for getting a better resolution on the range you’re interested in. More functionality can be found on the help page.   
 
@@ -69,6 +69,7 @@ Essential tools for quickly checking something in the console or for debugging. 
 
 
 ## Data Transformation in R
+There are 2 main R packages for data transformation. nOe is the tidyverse package, which is a suite of particularly human-readable packages, including dplyr, tidyr, stringr, and forcats. The other is data.table. 
 
 ### Subsetting
 

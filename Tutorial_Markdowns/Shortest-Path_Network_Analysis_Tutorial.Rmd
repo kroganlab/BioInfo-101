@@ -1,5 +1,5 @@
 ---
-title: "Shortest-Path Network Analysis Tutorial"
+title: "SPAN Tutorial - Shortest-Path Analysis on Networks"
 author: "Max Bennett"
 created: "2023-07-26"
 updated: "2023-07-26"
@@ -9,18 +9,27 @@ output: html_document
 
 ```{r setup, include=FALSE}
 
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
 defaultW <- getOption("warn") 
 options(warn = -1) 
 ```
 
 
-```{r Load Dependencies, echo=FALSE, message=FALSE}
+It's expected that you already have the packages below installed and are opening this markdown from the same directory as the helper script folder. Packages from CRAN can be downloaded using the install.packages( ) function from the console, and any other packages can be found on BioConductor.org and installed similarly from the console. This markdown was written under R version 4.2.2, Bioconductor version 3.16. 
+```{r Load Dependencies, echo=TRUE, message=FALSE}
 
 # Packages
-library( data.table )
-library( igraph )
-library( RCy3 )
+library( circlize ) #CRAN
+library( clusterProfiler ) #BioConductor
+library( ComplexHeatmap ) #BioConductor
+library( data.table ) #CRAN
+library( doParallel ) #CRAN
+library( igraph ) #CRAN
+library( ggplot2 ) #CRAN
+library( parallel ) #CRAN
+library( pbapply ) #CRAN
+library( RCy3 ) #BioConductor
+library( viridis ) #CRAN
 
 # Helper Functions  -  if you're interested to see how a function is coded you can find it in one of these files, or go directly to it using View( )
 source( file.path( "Helper_R_Scripts", "shortestPathFunctions.R" ) )
@@ -40,6 +49,43 @@ options(warn = defaultW)
   
 
 
+## Selecting the Underlying Network Data
+Let's start by loading the data from STRING (there's a lot, so this might take a few minutes; if you have this data stored locally you can read it in from your local directory and skip this chunk).
+```{r Load String}
+stringNet <- fread("https://stringdb-static.org/download/protein.links.detailed.v11.5/9606.protein.links.detailed.v11.5.txt.gz")
+aliases <- fread("https://stringdb-static.org/download/protein.aliases.v11.5/9606.protein.aliases.v11.5.txt.gz")
+```
+
+Now we're going to threshold the data to only include edges with 'experimental' scores greater than 400, meaning they were found with 'medium' confidence in one or more published pulldown assays. STRING is opaque about how these confidence scores are calculated, except to say that a score approaching 1000 is extremely confident, a score of 500 expects a 50% false positive rate, and a score of 100 expects a 90% false positive rate. A 60% estimated false positive rate might not sound very good, but it's serviceable for a few reasons besides convention. High throughput PPI assays have high false positive rates approaching 30% or even 40%, so we're already not so far from our gold standard for big data PPI. While the distribution of experimental scores in STRING balloons with thresholds below 400, from 40,000 interactions with scores 400-500 to 2.5 million interactions with scores 50-150. A cutoff of 400 culls those very low confidence scores while keeping a useful number of evenly binned scores from 400-1000; the even distribution of scores over 400 suggests at least methodological consistency in those interactions. 
+
+```{r, fig.show="hold", out.width="50%"}
+hist( stringNet[experimental > 0, experimental ], br=20, col=c(0,2,2,rep(0,5),3,3,rep(0,10)) )
+hist( stringNet[experimental > 400, experimental ] )
+```
+
+Ultimately, interesting linker genes will be selected based on many interactions, no single interaction is too important and the approach favors false positives over false negatives. 
+
+igraph is a very useful package for handling networks in R, although it's data structures can be very cumbersome. After spending some time writing my own very poorly optimized code for handling networks with base R, I assimilated and built my wrapper functions using igraph for operations like finding network distance or shortest paths.
+```{r Create Graph from String}
+stringSubset <- stringNet[experimental >= 400] 
+setnames(aliases, "#string_protein_id", "stringID")
+
+graph <- igraph::graph_from_edgelist(as.matrix(stringSubset[, .(protein1, protein2)]))
+# This calculates network distance, the number of edges in the shortest path between each pairwise combination of nodes
+distances <- igraph::distances(graph)
+```
+
+Here's a visualization of the distance matrix of genes in the thresholded String network. Note: some genes are not connected at all--they'll have an infinite value in the distance matrix by default. Non-finite values aren't permitted by hclust( ) so we'll assign all Inf values the highest finite distance in the dataset.
+
+```{r Distances visualization, fig.show="hold", out.width="50%"}
+distances[!is.finite(distances)] <- max(distances[is.finite(distances)])
+distances_toGraph <- as.dist (distances)
+hist(distances_toGraph, br=15)
+ddr <- stats::hclust (distances_toGraph, method= "average") |> as.dendrogram()
+Heatmap(distances, col = colorRamp2(c(0,2,4,6,8,15), viridis::viridis(6)), show_row_names = FALSE, show_column_names = FALSE, cluster_rows = ddr, cluster_columns = ddr)
+```
+
+
 ## What is Shortest-Path Analysis?
 **Shortest Paths** are exactly what they sound like, the fewest nodes and edges in a network that connect 2 nodes. If the graph is weighted, the shortest path might not be the fewest nodes and edges, but the nodes and edges with the 'least cost'. Shortest paths are a useful tool in network biology for modelling signalling pathways and other sequences of cellular interactions since they can trace the interactions that connect one protein of interest to another. Signalling pathways are usually thought of starting with receptors or other signalling proteins and 'ending' with an effector protein, like a transcription factor, that drives broad changes in the cell's state---the 'start' and 'end' in signalling pathways lend themselves well to the shortest paths model. 
 
@@ -55,6 +101,19 @@ In the diseased state, the disease causing proteins interact with proteins in th
 
 **TLDR: This technique leverages large protein-protein interaction databases, such as STRING, to relate two data sets with a plausibly causal biological relationship.** 
 
+```{r Load PPI and CRISPR Data}
+# The PPI data is taken from Penn et al. 2018 DOI: 10.1016/j.molcel.2018.07.010
+ppi <- fread(file.path("Shortest-Path_Network_Analysis_Tutorial_files", "Input_Data", "Sample_Data_PPI_TB_secretedFactors.csv") )
+setnames(ppi, c("Bacterial Bait  (Locus ID)", "Human Protein Uniprot", "Human Gene name"), c("Bait", "Prey", "GeneNames")) 
+ppi <- ppi[ MIST >= 0.7, ]
+ppi <- ppi[, .(Prey, GeneNames), by = Bait]
+ppi[, GeneName := tstrsplit(ppi$GeneNames, " ", keep = 1)]
+
+# The CRISPR data is taken from work by the Cox Lab at UCB and not to be used outside of this tutorial without their explicit permission
+crispr <- fread(file.path("Shortest-Path_Network_Analysis_Tutorial_files", "Input_Data", "Sample_Data_CrisprKDs_TB_TNFa-IFNb.csv") )
+# The crispr data is already cleaned, genes were mapped from mouse to human ("ortholog gene" is human), and thresholded to absolute fold changes > 1 and fdr-adjusted p values less than 0.05
+```
+
 
 
 ## Some Considerations 
@@ -66,8 +125,6 @@ There are a few assumptions in this method that you should consider when applyin
 
 - If you implement an un-weighted network, you are using Occam's razor: that one protein's effect on another is probably mediated by the fewest interactions in a putative PPI network. Obviously, this will not always be true, so you can refine your technique as you are more selective with the edges in your underlying network, the genes admitted in either gene set, and as you apply additional features like weights to the network. 
 
-
-## Selecting the Data
 
 
 ## Preparing the Network
