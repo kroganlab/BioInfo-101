@@ -52,9 +52,9 @@ find_ShortestPaths <- function(startpoints, targets, graph, distances = NULL, tr
       names <- names(p)
       len <- length(names)
       if (len > 2){
-        return(data.table("inpath" = c(NA, names[2:(len-1)]), "start" = names[1], "end" = names[len] ))
+        return(data.table("linker" = c(NA, names[2:(len-1)]), "start" = names[1], "end" = names[len] ))
       } else{
-        return(data.table("inpath" = c(NA), "start" = names[1], "end" = names[len] ))
+        return(data.table("linker" = c(NA), "start" = names[1], "end" = names[len] ))
       }
     })))
     

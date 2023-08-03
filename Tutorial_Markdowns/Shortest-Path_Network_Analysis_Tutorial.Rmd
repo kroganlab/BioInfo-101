@@ -2,8 +2,10 @@
 title: "SPAN Tutorial - Shortest-Path Analysis on Networks"
 author: "Max Bennett"
 created: "2023-07-26"
+output:
+  html_document:
+    df_print: paged
 updated: "2023-07-26"
-output: html_document
 ---
 
 
@@ -51,7 +53,7 @@ options(warn = defaultW)
 
 ## Selecting the Underlying Network Data
 Let's start by loading the data from STRING (there's a lot, so this might take a few minutes; if you have this data stored locally you can read it in from your local directory and skip this chunk).
-```{r Load String}
+```{r Load String, message=FALSE}
 stringNet <- fread("https://stringdb-static.org/download/protein.links.detailed.v11.5/9606.protein.links.detailed.v11.5.txt.gz")
 aliases <- fread("https://stringdb-static.org/download/protein.aliases.v11.5/9606.protein.aliases.v11.5.txt.gz")
 ```
@@ -67,23 +69,25 @@ Ultimately, interesting linker genes will be selected based on many interactions
 
 igraph is a very useful package for handling networks in R, although it's data structures can be very cumbersome. After spending some time writing my own very poorly optimized code for handling networks with base R, I assimilated and built my wrapper functions using igraph for operations like finding network distance or shortest paths.
 ```{r Create Graph from String}
-stringSubset <- stringNet[experimental >= 400] 
+net <- stringNet[experimental >= 400] 
 setnames(aliases, "#string_protein_id", "stringID")
 
-graph <- igraph::graph_from_edgelist(as.matrix(stringSubset[, .(protein1, protein2)]))
+graph <- igraph::graph_from_edgelist(as.matrix(net[, .(protein1, protein2)]))
 # This calculates network distance, the number of edges in the shortest path between each pairwise combination of nodes
 distances <- igraph::distances(graph)
 ```
 
-Here's a visualization of the distance matrix of genes in the thresholded String network. Note: some genes are not connected at all--they'll have an infinite value in the distance matrix by default. Non-finite values aren't permitted by hclust( ) so we'll assign all Inf values the highest finite distance in the dataset.
+Here's a visualization of the distance matrix of genes in the thresholded String network. Note: some genes are not connected at all--they'll have an infinite value in the distance matrix by default. Non-finite values aren't permitted by hclust( ) so we'll assign all Inf values the highest finite distance in the dataset. We'll keep this modification going forward.
 
-```{r Distances visualization, fig.show="hold", out.width="50%"}
+```{r Distances visualization, message=FALSE, fig.show="hold", out.width="50%"}
 distances[!is.finite(distances)] <- max(distances[is.finite(distances)])
 distances_toGraph <- as.dist (distances)
-hist(distances_toGraph, br=15)
 ddr <- stats::hclust (distances_toGraph, method= "average") |> as.dendrogram()
-Heatmap(distances, col = colorRamp2(c(0,2,4,6,8,15), viridis::viridis(6)), show_row_names = FALSE, show_column_names = FALSE, cluster_rows = ddr, cluster_columns = ddr)
+hist(distances_toGraph, br=15)
+ht_opt$message <- FALSE
+Heatmap(distances, col = colorRamp2(c(0,2,4,6,8,15), viridis::viridis(6)), show_row_names = FALSE, show_column_names = FALSE, cluster_rows = ddr, cluster_columns = ddr, )
 ```
+
 
 
 ## What is Shortest-Path Analysis?
@@ -106,7 +110,7 @@ In the diseased state, the disease causing proteins interact with proteins in th
 ppi <- fread(file.path("Shortest-Path_Network_Analysis_Tutorial_files", "Input_Data", "Sample_Data_PPI_TB_secretedFactors.csv") )
 setnames(ppi, c("Bacterial Bait  (Locus ID)", "Human Protein Uniprot", "Human Gene name"), c("Bait", "Prey", "GeneNames")) 
 ppi <- ppi[ MIST >= 0.7, ]
-ppi <- ppi[, .(Prey, GeneNames), by = Bait]
+ppi <- ppi[, .(Prey, GeneNames), by = Bait] 
 ppi[, GeneName := tstrsplit(ppi$GeneNames, " ", keep = 1)]
 
 # The CRISPR data is taken from work by the Cox Lab at UCB and not to be used outside of this tutorial without their explicit permission
@@ -115,8 +119,69 @@ crispr <- fread(file.path("Shortest-Path_Network_Analysis_Tutorial_files", "Inpu
 ```
 
 
+```{r Map Genes to String IDs}
+# Map STRING IDs to other datasets (aliases file makes it very easy to map from anything else to STRING)
+crispr[ data.table( aliases[alias %in% crispr$ortholog_gene,] ), string := i.stringID, on = .(ortholog_gene = alias)]
+ppi[ data.table( aliases[alias %in% ppi$Prey,] ), string := i.stringID, on = .(Prey = alias)]
 
-## Some Considerations 
+# map STRING IDs to symbols 
+strings2symbols <- rbind(crispr[, .(string, symbol = ortholog_gene)], ppi[, .(string, symbol = GeneName)])
+
+message( paste0( as.character( floor( nrow(ppi[Prey %in% aliases$alias,])/nrow(ppi)*100) ), "% of genes in PPI dataset mapped to string")) 
+message( paste0( as.character( floor( nrow(crispr[ortholog_gene %in% aliases$alias,])/nrow(crispr)*100) ), "% of genes in CRISPR dataset mapped to string"))
+```
+
+
+```{r Exclude Genes Without String Mapping}
+ppi <- ppi[ string %in% rownames(distances), ]
+```
+
+
+## Generating the Network and Scoring It
+Now that we have a basic understanding of the technique, we've prepared our underlying network, as well as our group of start nodes and end nodes, we can calculate the shortest paths and make a network from the union of those shortest paths. *find_shortestPaths()* is going to iterate through every start node, look in the distance matrix for the target node(s) that are the least distance from the start node, and then find all possible paths through the network with that distance using *igraph::shortest_paths()*. Since this is an unweighted graph, igraph will use the breadth-first search algorithm, and will usually return multiple pathways for each target with the same distance.
+
+The *find_shortestPaths()* wrapper function returns 4 data objects
+\$paths, \$nodes, \$edges, and \$startsEnds data structures:
+   $paths is unlisted raw igraph paths
+   $nodes is a list of all unique nodes in all paths
+   $edges is a list of unique edges formatted c(a,b, b,c, c,d, e,f, etc. )
+   $startsEnds is a table of the start and end node for every linker node
+```{r Generate Shortest Paths}
+shortestPaths <- find_ShortestPaths( startpoints = ppi$string,
+                                   targets = crispr$string,
+                                   graph = graph,
+                                   distances = distances, 
+                                   trackStartsEnds = TRUE )
+```
+
+
+With the shortest-paths network already figured, now we have to score it: *gen_NodeInfo( )* is a wrapper function that calculates centrality scores for each node in the network. Check out this link for an introduction to network centrality [European Bionformatics Institute - Centrality](https://www.ebi.ac.uk/training/online/courses/network-analysis-of-protein-interaction-data-an-introduction/building-and-analysing-ppins/topological-ppin-analysis/centrality-analysis/).
+``` {r Calculate Centrality Measures}
+nodeInfo <- gen_NodeInfo( shortestPaths )
+
+nodeInfo [, source := "linker"] [string %in% crispr$string, source := "crispr"] [string %in% ppi$string, source := "ppi"]  [string %in% ppi$string & string %in% crispr$string, source := "both"]
+
+nodeInfo [aliases[source == "Ensembl_EntrezGene"], symbol := i.alias, on = .(string = stringID)] 
+```
+
+
+To minimize the effects of underlying network topology on our measures of centrality, scores are normalized to a simulated background. The shortest-path network is simulated with the same number of starts and ends as our experimental network, but sampled randomly from the entire underlying network. This is repeated 1000 times as a good compromise between depth and time efficiency; it should take between 30 minutes and an hour to run, to just test the code without expecting accurate results, you can reduce the number of iterations to 20 or so to speed up run time. This operation is parallelized to save time; it should accomodate any operating system, but was only tested on Windows 10. Once the simulation is finished, every node's centrality score in the experimental network is divided by the mean of that node's scores from the simulation. The normalized values are thus even more abstract than the raw centrality scores, but are more reliable for selecting nodes of interest at a coarse-grained level. 
+``` {r Normalize Shortest Paths and Clean Output}
+pathsSimulated <- <- gen_RandomShortestPaths( nstarts = nrow( crispr ), 
+                                              ntargets = nrow( ppi ), 
+                                              niter = 1000, 
+                                              distance = distances, 
+                                              graph = graph)
+
+nodeInfo <- normalize_ShortestPaths( pathsSimulated, nodeInfo )
+
+```
+
+
+## Visualizing and Interpereting the Results
+
+
+## Some Other Considerations 
 There are a few assumptions in this method that you should consider when applying it:  
 
 - If you're using a network of PPI data, you're assuming that the interaction between your two gene sets of interest is mediated principally by complexes and allosteric interactions that are measured in pull-down assays.  
@@ -126,35 +191,6 @@ There are a few assumptions in this method that you should consider when applyin
 - If you implement an un-weighted network, you are using Occam's razor: that one protein's effect on another is probably mediated by the fewest interactions in a putative PPI network. Obviously, this will not always be true, so you can refine your technique as you are more selective with the edges in your underlying network, the genes admitted in either gene set, and as you apply additional features like weights to the network. 
 
 
-
-## Preparing the Network
-
-
-## Generating the Network and Scoring It
-
-
-## Interpereting the Results
-
-
-
-
-
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
-
-```{r example graph, include=FALSE}
-g <- barabasi.game(25)
-plot(g, layout=layout_with_fr, vertex.size=4, vertex.label.dist=0.5, vertex.color="red", edge.arrow.size=0.5)
-```
 
 
 
