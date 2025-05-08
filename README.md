@@ -2,12 +2,12 @@
 A beginner's guide to proteomics data analysis and bioinformatics in R. 
 
 #### If you're looking for push-button analyses..
-[Krogan Lab Web Tools (RShiny)]() (not working)
+[Krogan Lab Web Tools (RShiny)](https://github.com/MaxB3n/bp_utils) (not working)
 
 #### If you're looking for something else... 
 Here are some links to two very incomplete collections of resources
 
-[Krogan Lab Analyses Directory](./../shinyKrogan) (not working)
+[Krogan Lab Analyses Directory]() (not working)
 [Public Database Directory]() (not working)
 
 
