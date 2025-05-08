@@ -6,7 +6,8 @@ A beginner's guide to proteomics data analysis and bioinformatics in R.
 
 #### If you're looking for something else... 
 Here are some links to two very incomplete collections of resources
-[Krogan Lab Analyses Directory]() (not working)
+
+[Krogan Lab Analyses Directory](https://github.com/kroganlab/shinyKrogan) (not working)
 [Public Database Directory]() (not working)
 
 
